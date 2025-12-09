@@ -1,0 +1,96 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_HUB_REPO = 'yourusername'
+        DOCKER_CREDENTIALS = 'docker-hub-credentials'
+    }
+    
+    stages {
+        stage('Build All Services') {
+            parallel {
+                stage('Eureka') {
+                    steps {
+                        dir('microservices/eureka-server') {
+                            sh 'docker build -t ${DOCKER_HUB_REPO}/eureka-server:latest .'
+                        }
+                    }
+                }
+                stage('Gateway') {
+                    steps {
+                        dir('microservices/api-gateway') {
+                            sh 'docker build -t ${DOCKER_HUB_REPO}/api-gateway:latest .'
+                        }
+                    }
+                }
+                stage('User') {
+                    steps {
+                        dir('microservices/user-service') {
+                            sh 'docker build -t ${DOCKER_HUB_REPO}/user-service:latest .'
+                        }
+                    }
+                }
+                stage('Movie') {
+                    steps {
+                        dir('microservices/movie-service') {
+                            sh 'docker build -t ${DOCKER_HUB_REPO}/movie-service:latest .'
+                        }
+                    }
+                }
+                stage('Venue') {
+                    steps {
+                        dir('microservices/venue-service') {
+                            sh 'docker build -t ${DOCKER_HUB_REPO}/venue-service:latest .'
+                        }
+                    }
+                }
+                stage('Booking') {
+                    steps {
+                        dir('microservices/booking-service') {
+                            sh 'docker build -t ${DOCKER_HUB_REPO}/booking-service:latest .'
+                        }
+                    }
+                }
+                stage('Payment') {
+                    steps {
+                        dir('microservices/payment-service') {
+                            sh 'docker build -t ${DOCKER_HUB_REPO}/payment-service:latest .'
+                        }
+                    }
+                }
+                stage('Frontend') {
+                    steps {
+                        dir('frontend') {
+                            sh 'docker build -t ${DOCKER_HUB_REPO}/frontend:latest .'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Push to Registry') {
+            steps {
+                script {
+                    docker.withRegistry('', DOCKER_CREDENTIALS) {
+                        sh '''
+                            docker push ${DOCKER_HUB_REPO}/eureka-server:latest
+                            docker push ${DOCKER_HUB_REPO}/api-gateway:latest
+                            docker push ${DOCKER_HUB_REPO}/user-service:latest
+                            docker push ${DOCKER_HUB_REPO}/movie-service:latest
+                            docker push ${DOCKER_HUB_REPO}/venue-service:latest
+                            docker push ${DOCKER_HUB_REPO}/booking-service:latest
+                            docker push ${DOCKER_HUB_REPO}/payment-service:latest
+                            docker push ${DOCKER_HUB_REPO}/frontend:latest
+                        '''
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            sh 'docker system prune -f'
+        }
+    }
+}
