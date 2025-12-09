@@ -2,11 +2,21 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_HUB_REPO = 'yourusername'
+        DOCKER_HUB_REPO = 'shashank092'
         DOCKER_CREDENTIALS = 'docker-hub-credentials'
     }
     
     stages {
+        stage('Docker Login') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                    }
+                }
+            }
+        }
+        
         stage('Build All Services') {
             parallel {
                 stage('Eureka') {
