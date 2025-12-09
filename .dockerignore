@@ -1,0 +1,12 @@
+target/
+.git/
+.gitignore
+*.md
+*.bat
+*.sh
+.idea/
+.vscode/
+*.iml
+node_modules/
+.angular/
+dist/

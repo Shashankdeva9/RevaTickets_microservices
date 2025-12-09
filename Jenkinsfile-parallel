@@ -1,0 +1,186 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_REGISTRY = credentials('docker-registry-url')
+        VERSION = "${BUILD_NUMBER}"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build & Push All Services') {
+            parallel {
+                stage('Eureka Server') {
+                    steps {
+                        script {
+                            dir('microservices/eureka-server') {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                    def image = docker.build("${DOCKER_REGISTRY}/eureka-server:${VERSION}")
+                                    image.push()
+                                    image.push('latest')
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                stage('API Gateway') {
+                    steps {
+                        script {
+                            dir('microservices/api-gateway') {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                    def image = docker.build("${DOCKER_REGISTRY}/api-gateway:${VERSION}")
+                                    image.push()
+                                    image.push('latest')
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                stage('User Service') {
+                    steps {
+                        script {
+                            dir('microservices/user-service') {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                    def image = docker.build("${DOCKER_REGISTRY}/user-service:${VERSION}")
+                                    image.push()
+                                    image.push('latest')
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                stage('Movie Service') {
+                    steps {
+                        script {
+                            dir('microservices/movie-service') {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                    def image = docker.build("${DOCKER_REGISTRY}/movie-service:${VERSION}")
+                                    image.push()
+                                    image.push('latest')
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                stage('Venue Service') {
+                    steps {
+                        script {
+                            dir('microservices/venue-service') {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                    def image = docker.build("${DOCKER_REGISTRY}/venue-service:${VERSION}")
+                                    image.push()
+                                    image.push('latest')
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                stage('Booking Service') {
+                    steps {
+                        script {
+                            dir('microservices/booking-service') {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                    def image = docker.build("${DOCKER_REGISTRY}/booking-service:${VERSION}")
+                                    image.push()
+                                    image.push('latest')
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                stage('Payment Service') {
+                    steps {
+                        script {
+                            dir('microservices/payment-service') {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                    def image = docker.build("${DOCKER_REGISTRY}/payment-service:${VERSION}")
+                                    image.push()
+                                    image.push('latest')
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                stage('Frontend') {
+                    steps {
+                        script {
+                            dir('frontend') {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                    def image = docker.build("${DOCKER_REGISTRY}/frontend:${VERSION}")
+                                    image.push()
+                                    image.push('latest')
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Push Database Images') {
+            parallel {
+                stage('MySQL') {
+                    steps {
+                        script {
+                            docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                sh '''
+                                    docker pull mysql:8.0
+                                    docker tag mysql:8.0 ${DOCKER_REGISTRY}/mysql:8.0
+                                    docker push ${DOCKER_REGISTRY}/mysql:8.0
+                                '''
+                            }
+                        }
+                    }
+                }
+                
+                stage('MongoDB') {
+                    steps {
+                        script {
+                            docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials-id') {
+                                sh '''
+                                    docker pull mongo:latest
+                                    docker tag mongo:latest ${DOCKER_REGISTRY}/mongo:latest
+                                    docker push ${DOCKER_REGISTRY}/mongo:latest
+                                '''
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'All services built and pushed successfully!'
+            emailext(
+                subject: "Jenkins Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "All microservices have been built and pushed successfully.",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+        failure {
+            echo 'Pipeline failed!'
+            emailext(
+                subject: "Jenkins Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "Build failed. Check Jenkins for details.",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
