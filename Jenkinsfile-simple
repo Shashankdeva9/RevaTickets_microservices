@@ -7,16 +7,6 @@ pipeline {
     }
     
     stages {
-        stage('Docker Login') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
-                    }
-                }
-            }
-        }
-        
         stage('Build All Services') {
             parallel {
                 stage('Eureka') {
