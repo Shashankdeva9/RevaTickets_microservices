@@ -22,8 +22,9 @@ public class ImageController {
             
             if (file.exists() && file.isFile()) {
                 Resource resource = new FileSystemResource(file);
+                MediaType mediaType = getMediaType(filename);
                 return ResponseEntity.ok()
-                    .contentType(MediaType.IMAGE_JPEG)
+                    .contentType(mediaType)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
                     .body(resource);
             } else {
@@ -42,8 +43,9 @@ public class ImageController {
             
             if (file.exists() && file.isFile()) {
                 Resource resource = new FileSystemResource(file);
+                MediaType mediaType = getMediaType(filename);
                 return ResponseEntity.ok()
-                    .contentType(MediaType.IMAGE_JPEG)
+                    .contentType(mediaType)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
                     .body(resource);
             } else {
@@ -51,6 +53,16 @@ public class ImageController {
             }
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    private MediaType getMediaType(String filename) {
+        String extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+        switch (extension) {
+            case "png": return MediaType.IMAGE_PNG;
+            case "gif": return MediaType.IMAGE_GIF;
+            case "webp": return MediaType.valueOf("image/webp");
+            default: return MediaType.IMAGE_JPEG;
         }
     }
 }

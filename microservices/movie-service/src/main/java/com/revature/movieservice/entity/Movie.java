@@ -43,8 +43,8 @@ public class Movie {
     private String crew;
 
     private String trailerUrl;
-    private String displayImageUrl;
-    private String bannerImageUrl;
+    private String displayImageUrl = "/placeholder";
+    private String bannerImageUrl = "/placeholder";
 
     private BigDecimal rating = BigDecimal.ZERO;
     private Boolean isActive = true;

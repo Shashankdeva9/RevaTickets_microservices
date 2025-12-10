@@ -305,7 +305,7 @@ export class SelectShowComponent implements OnInit {
         const openGroundKey = 'OPEN_GROUND';
         if (!venueMap.has(openGroundKey)) {
           venueMap.set(openGroundKey, {
-            venueName: 'Open Ground Event',
+            venueName: this.isEvent ? 'Open Ground Event' : 'Shows',
             venueCity: '',
             shows: []
           });
