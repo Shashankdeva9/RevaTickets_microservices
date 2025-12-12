@@ -98,58 +98,7 @@ public class ShowService {
         }).collect(java.util.stream.Collectors.toList());
     }
 
-    private java.util.Map<String, Object> enrichShowWithDetails(Show show) {
-        java.util.Map<String, Object> enriched = new java.util.HashMap<>();
-        enriched.put("showId", show.getShowId());
-        enriched.put("movieId", show.getMovieId());
-        enriched.put("eventId", show.getEventId());
-        enriched.put("venueId", show.getVenueId());
-        enriched.put("screenId", show.getScreenId());
-        enriched.put("showDate", show.getShowDate());
-        enriched.put("showTime", show.getShowTime());
-        enriched.put("basePrice", show.getBasePrice());
-        enriched.put("totalSeats", show.getTotalSeats());
-        enriched.put("availableSeats", show.getAvailableSeats());
-        enriched.put("isActive", show.getIsActive());
 
-        if (show.getMovieId() != null) {
-            try {
-                String url = "http://movie-service/api/movies/" + show.getMovieId();
-                java.util.Map response = restTemplate.getForObject(url, java.util.Map.class);
-                if (response != null && response.get("data") != null) {
-                    enriched.put("movie", response.get("data"));
-                }
-            } catch (Exception e) {}
-        }
-
-        if (show.getEventId() != null) {
-            try {
-                String url = "http://movie-service/api/events/" + show.getEventId();
-                java.util.Map response = restTemplate.getForObject(url, java.util.Map.class);
-                if (response != null && response.get("data") != null) {
-                    enriched.put("event", response.get("data"));
-                }
-            } catch (Exception e) {}
-        }
-
-        try {
-            String url = "http://venue-service/api/venues/" + show.getVenueId();
-            java.util.Map response = restTemplate.getForObject(url, java.util.Map.class);
-            if (response != null && response.get("data") != null) {
-                enriched.put("venue", response.get("data"));
-            }
-        } catch (Exception e) {}
-
-        try {
-            String url = "http://venue-service/api/venues/screens/" + show.getScreenId();
-            java.util.Map response = restTemplate.getForObject(url, java.util.Map.class);
-            if (response != null && response.get("data") != null) {
-                enriched.put("screen", response.get("data"));
-            }
-        } catch (Exception e) {}
-
-        return enriched;
-    }
 
     public Show getShowById(Long id) {
         return showRepository.findById(id)
