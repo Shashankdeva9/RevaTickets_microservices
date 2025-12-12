@@ -13,10 +13,69 @@ pipeline {
             }
         }
         
-        stage('Build and Push Frontend') {
+        stage('Build Services') {
             steps {
-                dir('frontend') {
-                    bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-frontend .'
+                bat 'mvn clean package -DskipTests'
+            }
+        }
+        
+        stage('Build Docker Images') {
+            parallel {
+                stage('Build Eureka') {
+                    steps {
+                        dir('microservices/eureka-server') {
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-eureka-server .'
+                        }
+                    }
+                }
+                stage('Build API Gateway') {
+                    steps {
+                        dir('microservices/api-gateway') {
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-api-gateway .'
+                        }
+                    }
+                }
+                stage('Build User Service') {
+                    steps {
+                        dir('microservices/user-service') {
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-user-service .'
+                        }
+                    }
+                }
+                stage('Build Movie Service') {
+                    steps {
+                        dir('microservices/movie-service') {
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-movie-service .'
+                        }
+                    }
+                }
+                stage('Build Venue Service') {
+                    steps {
+                        dir('microservices/venue-service') {
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-venue-service .'
+                        }
+                    }
+                }
+                stage('Build Booking Service') {
+                    steps {
+                        dir('microservices/booking-service') {
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-booking-service .'
+                        }
+                    }
+                }
+                stage('Build Payment Service') {
+                    steps {
+                        dir('microservices/payment-service') {
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-payment-service .'
+                        }
+                    }
+                }
+                stage('Build Frontend') {
+                    steps {
+                        dir('frontend') {
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-frontend .'
+                        }
+                    }
                 }
             }
         }
@@ -27,9 +86,48 @@ pipeline {
             }
         }
         
-        stage('Push Frontend') {
-            steps {
-                bat 'docker push %DOCKER_HUB_REPO%/revtickets-frontend'
+        stage('Push Images') {
+            parallel {
+                stage('Push Eureka') {
+                    steps {
+                        bat 'docker push %DOCKER_HUB_REPO%/revtickets-eureka-server'
+                    }
+                }
+                stage('Push API Gateway') {
+                    steps {
+                        bat 'docker push %DOCKER_HUB_REPO%/revtickets-api-gateway'
+                    }
+                }
+                stage('Push User Service') {
+                    steps {
+                        bat 'docker push %DOCKER_HUB_REPO%/revtickets-user-service'
+                    }
+                }
+                stage('Push Movie Service') {
+                    steps {
+                        bat 'docker push %DOCKER_HUB_REPO%/revtickets-movie-service'
+                    }
+                }
+                stage('Push Venue Service') {
+                    steps {
+                        bat 'docker push %DOCKER_HUB_REPO%/revtickets-venue-service'
+                    }
+                }
+                stage('Push Booking Service') {
+                    steps {
+                        bat 'docker push %DOCKER_HUB_REPO%/revtickets-booking-service'
+                    }
+                }
+                stage('Push Payment Service') {
+                    steps {
+                        bat 'docker push %DOCKER_HUB_REPO%/revtickets-payment-service'
+                    }
+                }
+                stage('Push Frontend') {
+                    steps {
+                        bat 'docker push %DOCKER_HUB_REPO%/revtickets-frontend'
+                    }
+                }
             }
         }
     }
