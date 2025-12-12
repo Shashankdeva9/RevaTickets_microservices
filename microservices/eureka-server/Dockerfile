@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk-slim
+FROM eclipse-temurin:17-jdk
 COPY target/*.jar eureka-server.jar
 EXPOSE 8761
 ENTRYPOINT ["java", "-jar", "eureka-server.jar"]
