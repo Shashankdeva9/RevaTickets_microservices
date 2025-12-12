@@ -14,8 +14,56 @@ pipeline {
         }
         
         stage('Build Services') {
-            steps {
-                bat 'mvn clean package -DskipTests'
+            parallel {
+                stage('Build Eureka JAR') {
+                    steps {
+                        dir('microservices/eureka-server') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build API Gateway JAR') {
+                    steps {
+                        dir('microservices/api-gateway') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build User Service JAR') {
+                    steps {
+                        dir('microservices/user-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build Movie Service JAR') {
+                    steps {
+                        dir('microservices/movie-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build Venue Service JAR') {
+                    steps {
+                        dir('microservices/venue-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build Booking Service JAR') {
+                    steps {
+                        dir('microservices/booking-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build Payment Service JAR') {
+                    steps {
+                        dir('microservices/payment-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
             }
         }
         
