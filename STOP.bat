@@ -1,52 +1,59 @@
 @echo off
-REM RevTickets - Single Click Stop
-REM Stops all backend services and frontend
+REM RevTickets - Stop All Services Script
+REM Terminates all running microservices
 
-title RevTickets - Stopping...
+color 0C
+title RevTickets - Stopping Services
+
+echo ========================================
+echo    RevTickets - Stop All Services
+echo ========================================
+echo.
+echo This will stop all running microservices
+echo.
+pause
+
+echo.
+echo [*] Stopping all Java processes (Spring Boot services)...
+echo.
+
+REM Kill all Java processes (Spring Boot applications)
+taskkill /F /IM java.exe >nul 2>&1
+if errorlevel 1 (
+    echo [!] No Java processes found running
+) else (
+    echo [✓] All Java processes stopped
+)
+
+echo.
+echo [*] Stopping Node.js processes (Angular frontend)...
+echo.
+
+REM Kill Node.js processes (Angular dev server)
+taskkill /F /IM node.exe >nul 2>&1
+if errorlevel 1 (
+    echo [!] No Node.js processes found running
+) else (
+    echo [✓] All Node.js processes stopped
+)
 
 echo.
 echo ========================================
-echo    RevTickets - Stopping System
+echo    All Services Stopped
 echo ========================================
 echo.
-
-echo Stopping all services...
+echo The following have been terminated:
+echo   [X] Eureka Server (8761)
+echo   [X] API Gateway (9090)
+echo   [X] User Service (8081)
+echo   [X] Movie Service (8082)
+echo   [X] Venue Service (8083)
+echo   [X] Booking Service (8084)
+echo   [X] Payment Service (8085)
+echo   [X] Angular Frontend (4200)
 echo.
-
-REM Kill all Java processes (Spring Boot services)
-echo [1/2] Stopping backend services...
-taskkill /F /FI "WINDOWTITLE eq Eureka-8761*" >nul 2>&1
-taskkill /F /FI "WINDOWTITLE eq User-8081*" >nul 2>&1
-taskkill /F /FI "WINDOWTITLE eq Movie-8082*" >nul 2>&1
-taskkill /F /FI "WINDOWTITLE eq Venue-8083*" >nul 2>&1
-taskkill /F /FI "WINDOWTITLE eq Booking-8084*" >nul 2>&1
-taskkill /F /FI "WINDOWTITLE eq Payment-8085*" >nul 2>&1
-taskkill /F /FI "WINDOWTITLE eq Gateway-9090*" >nul 2>&1
-
-REM Also kill by port if windows are renamed
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8761') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :9090') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8081') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8082') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8083') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8084') do taskkill /F /PID %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8085') do taskkill /F /PID %%a >nul 2>&1
-
-echo [OK] Backend services stopped
+echo All service windows have been closed.
 echo.
-
-REM Kill frontend (Node.js)
-echo [2/2] Stopping frontend...
-taskkill /F /FI "WINDOWTITLE eq Frontend-4200*" >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :4200') do taskkill /F /PID %%a >nul 2>&1
-echo [OK] Frontend stopped
-echo.
-
-echo ========================================
-echo    All Services Stopped!
-echo ========================================
-echo.
-echo All RevTickets services have been stopped.
-echo Use START.bat to restart the system.
+echo To restart services, run: START.bat
 echo.
 pause
