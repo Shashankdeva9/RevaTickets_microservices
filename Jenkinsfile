@@ -345,13 +345,7 @@ pipeline {
             echo '=== Pipeline failed! ==='
         }
         always {
-            script {
-                try {
-                    bat 'docker logout'
-                } catch (Exception e) {
-                    echo "Docker logout failed: ${e.getMessage()}"
-                }
-            }
+            echo 'Pipeline execution completed'
         }
     }
 }
