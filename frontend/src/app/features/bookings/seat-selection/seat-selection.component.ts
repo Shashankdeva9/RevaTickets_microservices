@@ -44,16 +44,16 @@ interface SeatRow {
               <div>
                 <h1 class="text-3xl font-bold mb-2">{{ isOpenEvent ? 'Select your zone' : 'Select your seat' }}</h1>
                 <div class="flex flex-wrap gap-3 text-sm text-gray-400">
-                  <span>{{ show.event?.title || show.movie?.title }}</span>
+                  <span>{{ getEventOrMovieTitle() }}</span>
                   <span>•</span>
-                  <span *ngIf="!isOpenEvent">{{ show.venue?.venueName }}, {{ show.venue?.city }}</span>
-                  <span *ngIf="isOpenEvent">Open Ground Event</span>
+                  <span *ngIf="!isOpenEvent && show.venue">{{ show.venue.venueName }}, {{ show.venue.city }}</span>
+                  <span *ngIf="isOpenEvent">{{ getVenueDisplay() }}</span>
                   <span>•</span>
                   <span>{{ show.showDate | date:'EEE, dd MMM, yyyy' }}</span>
                   <span>•</span>
                   <span>{{ formatShowTime(show.showTime) }}</span>
-                  <span *ngIf="!isOpenEvent">•</span>
-                  <span *ngIf="!isOpenEvent">Screen {{ show.screen?.screenNumber }}</span>
+                  <span *ngIf="!isOpenEvent && show.screen">•</span>
+                  <span *ngIf="!isOpenEvent && show.screen">Screen {{ show.screen.screenNumber }}</span>
                 </div>
               </div>
               
@@ -254,9 +254,64 @@ export class SeatSelectionComponent implements OnInit {
     this.http.get<any>(`${environment.apiUrl}/shows/${this.showId}`).subscribe({
       next: (response) => {
         this.show = response.data;
-        this.loadSeats();
+        console.log('Show data loaded:', this.show);
+        
+        // Fetch related data to enrich the show
+        this.enrichShowData().then(() => {
+          this.loadSeats();
+        });
+      },
+      error: (err) => {
+        console.error('Error loading show:', err);
+        alert('Failed to load show details. Please try again.');
       }
     });
+  }
+
+  async enrichShowData() {
+    // Fetch movie data if movieId exists
+    if (this.show.movieId) {
+      try {
+        const movieResponse = await this.http.get<any>(`${environment.apiUrl}/movies/${this.show.movieId}`).toPromise();
+        this.show.movie = movieResponse.data;
+        console.log('Movie data:', this.show.movie);
+      } catch (err) {
+        console.error('Error loading movie:', err);
+      }
+    }
+    
+    // Fetch event data if eventId exists
+    if (this.show.eventId) {
+      try {
+        const eventResponse = await this.http.get<any>(`${environment.apiUrl}/events/${this.show.eventId}`).toPromise();
+        this.show.event = eventResponse.data;
+        console.log('Event data:', this.show.event);
+      } catch (err) {
+        console.error('Error loading event:', err);
+      }
+    }
+    
+    // Fetch venue data if venueId exists
+    if (this.show.venueId) {
+      try {
+        const venueResponse = await this.http.get<any>(`${environment.apiUrl}/venues/${this.show.venueId}`).toPromise();
+        this.show.venue = venueResponse.data;
+        console.log('Venue data:', this.show.venue);
+      } catch (err) {
+        console.error('Error loading venue:', err);
+      }
+    }
+    
+    // Fetch screen data if screenId exists
+    if (this.show.screenId) {
+      try {
+        const screenResponse = await this.http.get<any>(`${environment.apiUrl}/venues/screens/${this.show.screenId}`).toPromise();
+        this.show.screen = screenResponse.data;
+        console.log('Screen data:', this.show.screen);
+      } catch (err) {
+        console.error('Error loading screen:', err);
+      }
+    }
   }
 
   loadSeats() {
@@ -306,11 +361,16 @@ export class SeatSelectionComponent implements OnInit {
     this.http.get<any>(`${environment.apiUrl}/shows/open-event-shows/${this.showId}`).subscribe({
       next: (response) => {
         this.show = response.data;
+        console.log('Loaded open event show:', this.show);
         this.pricingZones = this.show.pricingZones || [];
         this.pricingZones.forEach(zone => {
           this.zoneTickets.set(zone.name, 0);
           zone.availableCapacity = zone.availableCapacity || zone.capacity;
         });
+      },
+      error: (err) => {
+        console.error('Error loading open event show:', err);
+        alert('Failed to load event details. Please try again.');
       }
     });
   }
@@ -384,6 +444,51 @@ export class SeatSelectionComponent implements OnInit {
   getSelectedSeatPrice(seatLabel: string): number {
     const seatInfo = this.selectedSeatsMap.get(seatLabel);
     return seatInfo ? seatInfo.price : 0;
+  }
+
+  getEventOrMovieTitle(): string {
+    if (!this.show) {
+      return 'Loading...';
+    }
+    
+    if (this.show.event?.title) {
+      return this.show.event.title;
+    }
+    
+    if (this.show.movie?.title) {
+      return this.show.movie.title;
+    }
+    
+    // Fallback
+    return this.isOpenEvent ? 'Event' : 'Show';
+  }
+
+  getVenueDisplay(): string {
+    if (!this.show) {
+      return 'Loading...';
+    }
+    
+    // For venue-based shows
+    if (this.show.venue && this.show.venue.venueName) {
+      return `${this.show.venue.venueName}, ${this.show.venue.city || ''}`;
+    }
+    
+    // For open ground events, check if event has location info
+    if (this.show.event) {
+      // Try various location fields that might exist
+      if (this.show.event.location) {
+        return this.show.event.location;
+      }
+      if (this.show.event.venue) {
+        return this.show.event.venue;
+      }
+      if (this.show.event.city) {
+        return this.show.event.city;
+      }
+    }
+    
+    // Default for open ground events
+    return 'Open Ground Event';
   }
 
   formatShowTime(time: string): string {

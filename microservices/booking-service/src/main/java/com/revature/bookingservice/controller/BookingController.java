@@ -123,10 +123,20 @@ public class BookingController {
     }
 
     @GetMapping("/shows/event/{eventId}")
-    public ResponseEntity<ApiResponse<List<Show>>> getShowsByEventAndDate(@PathVariable Long eventId, @RequestParam String date) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getShowsByEventAndDate(@PathVariable Long eventId, @RequestParam String date) {
         try {
-            List<Show> shows = showService.getShowsByEventIdAndDate(eventId, date);
+            Map<String, Object> shows = showService.getShowsByEventIdAndDateGrouped(eventId, date);
             return ResponseEntity.ok(new ApiResponse<>(true, "Shows retrieved successfully", shows));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/shows/open-event-shows/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getOpenEventShowById(@PathVariable Long id) {
+        try {
+            Map<String, Object> showData = showService.getOpenEventShowById(id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Open event show retrieved successfully", showData));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
         }

@@ -1,4 +1,14 @@
-FROM eclipse-temurin:17-jdk
-COPY target/*.jar payment-service.jar
+# Multi-stage build
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# Production image
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+COPY --from=build /app/target/*.jar payment-service.jar
 EXPOSE 8085
-ENTRYPOINT ["java", "-jar", "payment-service.jar"]
+ENTRYPOINT ["java", "-jar", "-Xmx512m", "-Xms256m", "payment-service.jar"]

@@ -1,4 +1,14 @@
-FROM eclipse-temurin:17-jdk
-COPY target/*.jar venue-service.jar
+# Multi-stage build
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# Production image
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+COPY --from=build /app/target/*.jar venue-service.jar
 EXPOSE 8083
-ENTRYPOINT ["java", "-jar", "venue-service.jar"]
+ENTRYPOINT ["java", "-jar", "-Xmx512m", "-Xms256m", "venue-service.jar"]

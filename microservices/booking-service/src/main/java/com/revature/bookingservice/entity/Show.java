@@ -46,6 +46,10 @@ public class Show {
     @Column(name = "pricing_tiers", columnDefinition = "JSON")
     private Map<String, BigDecimal> pricingTiers;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "zone_capacities", columnDefinition = "JSON")
+    private Map<String, Integer> zoneCapacities;
+
     @Column(name = "total_seats", nullable = false)
     private Integer totalSeats;
 
@@ -93,6 +97,9 @@ public class Show {
 
     public Map<String, BigDecimal> getPricingTiers() { return pricingTiers; }
     public void setPricingTiers(Map<String, BigDecimal> pricingTiers) { this.pricingTiers = pricingTiers; }
+
+    public Map<String, Integer> getZoneCapacities() { return zoneCapacities; }
+    public void setZoneCapacities(Map<String, Integer> zoneCapacities) { this.zoneCapacities = zoneCapacities; }
 
     public Integer getTotalSeats() { return totalSeats; }
     public void setTotalSeats(Integer totalSeats) { this.totalSeats = totalSeats; }
