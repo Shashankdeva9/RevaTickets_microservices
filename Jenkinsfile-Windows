@@ -1,0 +1,256 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_REGISTRY = 'shashankdeva9'  // Update with your Docker Hub username
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'  // Jenkins credentials ID
+        GIT_CREDENTIALS_ID = 'git-credentials'
+        MYSQL_PASSWORD = 'abc@123'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code from Git...'
+                git branch: 'main', 
+                    credentialsId: "${GIT_CREDENTIALS_ID}",
+                    url: 'https://github.com/Shashankdeva9/RevaTickets_microservices.git'
+            }
+        }
+        
+        stage('Build Microservices') {
+            parallel {
+                stage('Build Eureka Server') {
+                    steps {
+                        dir('microservices/eureka-server') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build API Gateway') {
+                    steps {
+                        dir('microservices/api-gateway') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build User Service') {
+                    steps {
+                        dir('microservices/user-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build Movie Service') {
+                    steps {
+                        dir('microservices/movie-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build Venue Service') {
+                    steps {
+                        dir('microservices/venue-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build Booking Service') {
+                    steps {
+                        dir('microservices/booking-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('Build Payment Service') {
+                    steps {
+                        dir('microservices/payment-service') {
+                            bat 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Build Docker Images') {
+            parallel {
+                stage('Build Eureka') {
+                    steps {
+                        dir('microservices/eureka-server') {
+                            bat 'docker build -t %DOCKER_REGISTRY%/revtickets-eureka:latest .'
+                        }
+                    }
+                }
+                stage('Build API Gateway') {
+                    steps {
+                        dir('microservices/api-gateway') {
+                            bat 'docker build -t %DOCKER_REGISTRY%/revtickets-gateway:latest .'
+                        }
+                    }
+                }
+                stage('Build User Service') {
+                    steps {
+                        dir('microservices/user-service') {
+                            bat 'docker build -t %DOCKER_REGISTRY%/revtickets-user:latest .'
+                        }
+                    }
+                }
+                stage('Build Movie Service') {
+                    steps {
+                        dir('microservices/movie-service') {
+                            bat 'docker build -t %DOCKER_REGISTRY%/revtickets-movie:latest .'
+                        }
+                    }
+                }
+                stage('Build Venue Service') {
+                    steps {
+                        dir('microservices/venue-service') {
+                            bat 'docker build -t %DOCKER_REGISTRY%/revtickets-venue:latest .'
+                        }
+                    }
+                }
+                stage('Build Booking Service') {
+                    steps {
+                        dir('microservices/booking-service') {
+                            bat 'docker build -t %DOCKER_REGISTRY%/revtickets-booking:latest .'
+                        }
+                    }
+                }
+                stage('Build Payment Service') {
+                    steps {
+                        dir('microservices/payment-service') {
+                            bat 'docker build -t %DOCKER_REGISTRY%/revtickets-payment:latest .'
+                        }
+                    }
+                }
+                stage('Build Frontend') {
+                    steps {
+                        dir('frontend') {
+                            bat 'docker build -t %DOCKER_REGISTRY%/revtickets-frontend:latest .'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", 
+                                                passwordVariable: 'DOCKER_PASSWORD', 
+                                                usernameVariable: 'DOCKER_USERNAME')]) {
+                    bat 'docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%'
+                }
+            }
+        }
+        
+        stage('Push Images') {
+            parallel {
+                stage('Push Eureka') {
+                    steps {
+                        bat 'docker push %DOCKER_REGISTRY%/revtickets-eureka:latest'
+                    }
+                }
+                stage('Push API Gateway') {
+                    steps {
+                        bat 'docker push %DOCKER_REGISTRY%/revtickets-gateway:latest'
+                    }
+                }
+                stage('Push User Service') {
+                    steps {
+                        bat 'docker push %DOCKER_REGISTRY%/revtickets-user:latest'
+                    }
+                }
+                stage('Push Movie Service') {
+                    steps {
+                        bat 'docker push %DOCKER_REGISTRY%/revtickets-movie:latest'
+                    }
+                }
+                stage('Push Venue Service') {
+                    steps {
+                        bat 'docker push %DOCKER_REGISTRY%/revtickets-venue:latest'
+                    }
+                }
+                stage('Push Booking Service') {
+                    steps {
+                        bat 'docker push %DOCKER_REGISTRY%/revtickets-booking:latest'
+                    }
+                }
+                stage('Push Payment Service') {
+                    steps {
+                        bat 'docker push %DOCKER_REGISTRY%/revtickets-payment:latest'
+                    }
+                }
+                stage('Push Frontend') {
+                    steps {
+                        bat 'docker push %DOCKER_REGISTRY%/revtickets-frontend:latest'
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy with Docker Compose') {
+            steps {
+                script {
+                    echo 'Deploying application with Docker Compose...'
+                    
+                    // Stop existing containers
+                    bat 'docker-compose -f docker-compose-full.yml down || exit /b 0'
+                    
+                    // Start new containers
+                    bat 'docker-compose -f docker-compose-full.yml up -d'
+                    
+                    // Wait for services to be healthy
+                    echo 'Waiting for services to be healthy...'
+                    sleep(time: 60, unit: 'SECONDS')
+                }
+            }
+        }
+        
+        stage('Health Check') {
+            steps {
+                script {
+                    echo 'Performing health checks...'
+                    
+                    // Check Eureka (using timeout and error handling)
+                    bat '''
+                        timeout /t 30 /nobreak > nul
+                        curl -f http://localhost:8761/actuator/health || exit /b 1
+                    '''
+                    
+                    // Check API Gateway
+                    bat '''
+                        timeout /t 10 /nobreak > nul
+                        curl -f http://localhost:9090/actuator/health || exit /b 1
+                    '''
+                    
+                    // Check Frontend
+                    bat '''
+                        timeout /t 10 /nobreak > nul
+                        curl -f http://localhost:4200 || exit /b 1
+                    '''
+                    
+                    echo 'All services are healthy!'
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+            echo 'Application is running at:'
+            echo '  - Frontend: http://localhost:4200'
+            echo '  - API Gateway: http://localhost:9090'
+            echo '  - Eureka Dashboard: http://localhost:8761'
+        }
+        failure {
+            echo 'Pipeline failed!'
+            bat 'docker logout'
+        }
+        always {
+            bat 'docker logout'
+            echo 'Cleaning up...'
+            bat 'docker system prune -f'
+        }
+    }
+}
