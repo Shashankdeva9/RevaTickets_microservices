@@ -347,11 +347,7 @@ pipeline {
         always {
             script {
                 try {
-                    if (isUnix()) {
-                        sh 'docker logout'
-                    } else {
-                        bat 'docker logout'
-                    }
+                    bat 'docker logout'
                 } catch (Exception e) {
                     echo "Docker logout failed: ${e.getMessage()}"
                 }
