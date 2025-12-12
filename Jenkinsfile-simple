@@ -129,7 +129,7 @@ pipeline {
                             script {
                                 echo "⏳ Building Eureka Docker image..."
                             }
-                            bat 'docker build --pull=always -t %DOCKER_HUB_REPO%/revtickets-eureka-server:latest .'
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-eureka-server:latest .'
                             script {
                                 echo "✅ Eureka Docker image built"
                             }
@@ -142,7 +142,7 @@ pipeline {
                             script {
                                 echo "⏳ Building API Gateway Docker image..."
                             }
-                            bat 'docker build --pull=always -t %DOCKER_HUB_REPO%/revtickets-api-gateway:latest .'
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-api-gateway:latest .'
                             script {
                                 echo "✅ API Gateway Docker image built"
                             }
@@ -155,7 +155,7 @@ pipeline {
                             script {
                                 echo "⏳ Building User Service Docker image..."
                             }
-                            bat 'docker build --pull=always -t %DOCKER_HUB_REPO%/revtickets-user-service:latest .'
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-user-service:latest .'
                             script {
                                 echo "✅ User Service Docker image built"
                             }
@@ -168,7 +168,7 @@ pipeline {
                             script {
                                 echo "⏳ Building Movie Service Docker image..."
                             }
-                            bat 'docker build --pull=always -t %DOCKER_HUB_REPO%/revtickets-movie-service:latest .'
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-movie-service:latest .'
                             script {
                                 echo "✅ Movie Service Docker image built"
                             }
@@ -181,7 +181,7 @@ pipeline {
                             script {
                                 echo "⏳ Building Venue Service Docker image..."
                             }
-                            bat 'docker build --pull=always -t %DOCKER_HUB_REPO%/revtickets-venue-service:latest .'
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-venue-service:latest .'
                             script {
                                 echo "✅ Venue Service Docker image built"
                             }
@@ -194,7 +194,7 @@ pipeline {
                             script {
                                 echo "⏳ Building Booking Service Docker image..."
                             }
-                            bat 'docker build --pull=always -t %DOCKER_HUB_REPO%/revtickets-booking-service:latest .'
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-booking-service:latest .'
                             script {
                                 echo "✅ Booking Service Docker image built"
                             }
@@ -207,7 +207,7 @@ pipeline {
                             script {
                                 echo "⏳ Building Payment Service Docker image..."
                             }
-                            bat 'docker build --pull=always -t %DOCKER_HUB_REPO%/revtickets-payment-service:latest .'
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-payment-service:latest .'
                             script {
                                 echo "✅ Payment Service Docker image built"
                             }
@@ -220,7 +220,7 @@ pipeline {
                             script {
                                 echo "⏳ Building Frontend Docker image..."
                             }
-                            bat 'docker build --pull=always -t %DOCKER_HUB_REPO%/revtickets-frontend:latest .'
+                            bat 'docker build -t %DOCKER_HUB_REPO%/revtickets-frontend:latest .'
                             script {
                                 echo "✅ Frontend Docker image built"
                             }
