@@ -345,11 +345,13 @@ pipeline {
             echo '=== Pipeline failed! ==='
         }
         always {
-            script {
-                if (isUnix()) {
-                    sh 'docker logout'
-                } else {
-                    bat 'docker logout'
+            node {
+                script {
+                    if (isUnix()) {
+                        sh 'docker logout'
+                    } else {
+                        bat 'docker logout'
+                    }
                 }
             }
         }
