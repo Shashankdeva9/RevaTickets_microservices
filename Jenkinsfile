@@ -2,8 +2,8 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_HUB_USERNAME = credentials('docker-hub-username') // Add your Docker Hub username in Jenkins credentials
-        DOCKER_HUB_PASSWORD = credentials('docker-hub-password') // Add your Docker Hub password in Jenkins credentials
+        DOCKER_HUB_USERNAME = credentials('docker-hub-username')
+        DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
         DOCKER_REGISTRY = 'docker.io'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
