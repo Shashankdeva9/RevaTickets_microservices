@@ -1,22 +1,19 @@
 # 🎬 RevTickets Microservices Platform
 
-A complete microservices-based movie and event ticketing system built with Spring Boot, Angular, and MySQL.
+A complete microservices-based movie and event ticketing system built with Spring Boot, Angular, MySQL, and MongoDB.
 
 ---
 
-## 🚀 Quick Start (3 Steps)
+## 🚀 Quick Start (3 Commands)
 
 ```bash
-# 1. Verify everything is configured correctly
-verify-setup.bat
+# 1. Verify all prerequisites (MySQL, MongoDB, JDK, Maven, Node.js)
+VERIFY-SYSTEM.bat
 
-# 2. Setup databases (first time only)
-setup-database.bat
+# 2. Start all backend services
+START.bat
 
-# 3. Start all services
-start-complete-system.bat
-
-# 4. Start frontend (in a new terminal)
+# 3. In a NEW terminal, start the frontend
 cd frontend
 npm install
 npm start
@@ -24,6 +21,8 @@ npm start
 
 **Access**: http://localhost:4200  
 **Admin Login**: admin@revature.com / admin@123
+
+**📘 Full Setup Guide**: See [COMPLETE-SETUP-GUIDE.md](COMPLETE-SETUP-GUIDE.md) for detailed instructions
 
 ---
 

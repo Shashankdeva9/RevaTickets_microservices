@@ -269,9 +269,31 @@ public class ShowService {
             show.setBasePrice(new java.math.BigDecimal("200"));
         }
         
-        // Get screen capacity from venue service
+        // Handle pricing zones for open ground events
+        if (showData.get("pricingZones") != null) {
+            // For open ground events with multiple pricing zones
+            // Store in pricingTiers JSON field
+            java.util.Map<String, java.math.BigDecimal> pricingTiers = new java.util.HashMap<>();
+            java.util.List<java.util.Map<String, Object>> zones = 
+                (java.util.List<java.util.Map<String, Object>>) showData.get("pricingZones");
+            for (java.util.Map<String, Object> zone : zones) {
+                String zoneName = zone.get("name").toString();
+                java.math.BigDecimal zonePrice = new java.math.BigDecimal(zone.get("price").toString());
+                pricingTiers.put(zoneName, zonePrice);
+            }
+            show.setPricingTiers(pricingTiers);
+        }
+        
+        // Get screen capacity from venue service or pricing zones
         int totalSeats = 100; // default
-        if (screenId != null) {
+        if (showData.get("pricingZones") != null) {
+            // Calculate total capacity from pricing zones for open ground
+            java.util.List<java.util.Map<String, Object>> zones = 
+                (java.util.List<java.util.Map<String, Object>>) showData.get("pricingZones");
+            totalSeats = zones.stream()
+                .mapToInt(zone -> Integer.parseInt(zone.get("capacity").toString()))
+                .sum();
+        } else if (screenId != null) {
             try {
                 String url = "http://venue-service/api/venues/screens/" + screenId;
                 Map<String, Object> response = restTemplate.getForObject(url, Map.class);

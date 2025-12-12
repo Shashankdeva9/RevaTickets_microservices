@@ -27,10 +27,10 @@ public class Show {
     @Column(name = "event_id")
     private Long eventId;
 
-    @Column(name = "venue_id", nullable = false)
+    @Column(name = "venue_id")
     private Long venueId;
 
-    @Column(name = "screen_id", nullable = false)
+    @Column(name = "screen_id")
     private Long screenId;
 
     @Column(name = "show_date", nullable = false)

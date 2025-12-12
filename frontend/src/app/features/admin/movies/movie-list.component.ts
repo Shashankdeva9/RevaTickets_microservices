@@ -64,7 +64,7 @@ import { environment } from '../../../../environments/environment';
                 <td class="px-6 py-4">
                   <img [src]="getImageUrl(movie.displayImageUrl)" [alt]="movie.title" 
                        class="w-16 h-24 object-cover rounded-lg border border-white/10"
-                       onerror="this.src='https://via.placeholder.com/200x300?text=No+Image'">
+                       onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22300%22%3E%3Crect fill=%22%23333%22 width=%22200%22 height=%22300%22/%3E%3Ctext fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3ENo Image%3C/text%3E%3C/svg%3E'">
                 </td>
                 <td class="px-6 py-4">
                   <p class="font-semibold text-white">{{ movie.title }}</p>

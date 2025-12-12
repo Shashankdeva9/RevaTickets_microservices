@@ -6,6 +6,7 @@ import com.revature.movieservice.service.EventService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -66,21 +67,66 @@ public class EventController {
         }
     }
 
-    @PostMapping("/admin")
-    public ResponseEntity<ApiResponse<Event>> createAdminEvent(@RequestBody Event event) {
+    @PostMapping(value = "/admin", consumes = {"multipart/form-data"})
+    public ResponseEntity<ApiResponse<Event>> createAdminEvent(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("category") String category,
+            @RequestParam("artist") String artist,
+            @RequestParam("duration") Integer duration,
+            @RequestParam("eventDate") String eventDate,
+            @RequestParam("eventTime") String eventTime,
+            @RequestParam("language") String language,
+            @RequestParam("ageRestriction") String ageRestriction,
+            @RequestParam(value = "displayImage", required = false) MultipartFile displayImage,
+            @RequestParam(value = "bannerImage", required = false) MultipartFile bannerImage) {
         try {
+            Event event = new Event();
+            event.setTitle(title);
+            event.setDescription(description);
+            event.setCategory(category);
+            event.setArtistOrTeam(artist);
+            event.setDurationMinutes(duration);
+            event.setEventDate(java.time.LocalDate.parse(eventDate));
+            event.setEventTime(java.time.LocalTime.parse(eventTime));
+            event.setLanguage(language);
+            event.setAgeRestriction(ageRestriction);
             event.setIsActive(true);
-            Event savedEvent = eventService.createEvent(event);
+            
+            Event savedEvent = eventService.createEvent(event, displayImage, bannerImage);
             return ResponseEntity.ok(new ApiResponse<>(true, "Event created successfully", savedEvent));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
 
-    @PutMapping("/admin/{id}")
-    public ResponseEntity<ApiResponse<Event>> updateAdminEvent(@PathVariable Long id, @RequestBody Event event) {
+    @PutMapping(value = "/admin/{id}", consumes = {"multipart/form-data"})
+    public ResponseEntity<ApiResponse<Event>> updateAdminEvent(
+            @PathVariable Long id,
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("category") String category,
+            @RequestParam("artist") String artist,
+            @RequestParam("duration") Integer duration,
+            @RequestParam("eventDate") String eventDate,
+            @RequestParam("eventTime") String eventTime,
+            @RequestParam("language") String language,
+            @RequestParam("ageRestriction") String ageRestriction,
+            @RequestParam(value = "displayImage", required = false) MultipartFile displayImage,
+            @RequestParam(value = "bannerImage", required = false) MultipartFile bannerImage) {
         try {
-            Event updatedEvent = eventService.updateEvent(id, event);
+            Event event = new Event();
+            event.setTitle(title);
+            event.setDescription(description);
+            event.setCategory(category);
+            event.setArtistOrTeam(artist);
+            event.setDurationMinutes(duration);
+            event.setEventDate(java.time.LocalDate.parse(eventDate));
+            event.setEventTime(java.time.LocalTime.parse(eventTime));
+            event.setLanguage(language);
+            event.setAgeRestriction(ageRestriction);
+            
+            Event updatedEvent = eventService.updateEvent(id, event, displayImage, bannerImage);
             return ResponseEntity.ok(new ApiResponse<>(true, "Event updated successfully", updatedEvent));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));

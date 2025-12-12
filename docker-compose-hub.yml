@@ -1,0 +1,196 @@
+# Use this docker-compose file if you want to pull pre-built images from Docker Hub
+# Update DOCKER_REGISTRY to your Docker Hub username
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: revtickets-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: abc@123
+      MYSQL_DATABASE: revticketsnew
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pabc@123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - revtickets-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: revtickets-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - revtickets-network
+
+  eureka-server:
+    image: ${DOCKER_REGISTRY:-your-username}/revtickets-eureka:latest
+    container_name: revtickets-eureka
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_APPLICATION_NAME: eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - revtickets-network
+
+  api-gateway:
+    image: ${DOCKER_REGISTRY:-your-username}/revtickets-gateway:latest
+    container_name: revtickets-gateway
+    ports:
+      - "9090:9090"
+    environment:
+      SPRING_APPLICATION_NAME: api-gateway
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - revtickets-network
+
+  user-service:
+    image: ${DOCKER_REGISTRY:-your-username}/revtickets-user:latest
+    container_name: revtickets-user
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_APPLICATION_NAME: user-service
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revtickets_user_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+
+  movie-service:
+    image: ${DOCKER_REGISTRY:-your-username}/revtickets-movie:latest
+    container_name: revtickets-movie
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_APPLICATION_NAME: movie-service
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revtickets_movie_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      SPRING_DATA_MONGODB_HOST: mongodb
+      SPRING_DATA_MONGODB_PORT: 27017
+      SPRING_DATA_MONGODB_DATABASE: revtickets_reviews
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+
+  venue-service:
+    image: ${DOCKER_REGISTRY:-your-username}/revtickets-venue:latest
+    container_name: revtickets-venue
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_APPLICATION_NAME: venue-service
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revtickets_venue_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+
+  booking-service:
+    image: ${DOCKER_REGISTRY:-your-username}/revtickets-booking:latest
+    container_name: revtickets-booking
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_APPLICATION_NAME: booking-service
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revtickets_booking_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+
+  payment-service:
+    image: ${DOCKER_REGISTRY:-your-username}/revtickets-payment:latest
+    container_name: revtickets-payment
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_APPLICATION_NAME: payment-service
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revtickets_payment_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+
+  frontend:
+    image: ${DOCKER_REGISTRY:-your-username}/revtickets-frontend:latest
+    container_name: revtickets-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - revtickets-network
+
+networks:
+  revtickets-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  mongodb-data:
