@@ -4,14 +4,9 @@ server:
 spring:
   application:
     name: movie-service
-  datasource:
-    url: jdbc:mysql://localhost:3306/revtickets_movie_db
-    username: root
-    password: root
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+  data:
+    mongodb:
+      uri: mongodb://root:abc@123@localhost:27017/revtickets_movie_db?authSource=admin
 
 eureka:
   client:

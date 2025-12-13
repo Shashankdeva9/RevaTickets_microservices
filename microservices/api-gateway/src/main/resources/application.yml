@@ -29,7 +29,7 @@ spring:
         - id: user-service
           uri: lb://user-service
           predicates:
-            - Path=/api/auth/**, /api/admin/users, /api/admin/users/**, /api/admin/dashboard/**
+            - Path=/api/auth/**, /api/admin/users, /api/admin/users/**, /api/admin/dashboard, /api/admin/dashboard/**
         - id: movie-service-images
           uri: lb://movie-service
           predicates:

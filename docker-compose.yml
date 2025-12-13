@@ -1,58 +1,201 @@
+version: '3.8'
+
 services:
-  mysql:
+  # Database Services
+  revtickets-mysql:
     image: mysql:8.0
-    container_name: mysql
+    container_name: revtickets-mysql
     environment:
       MYSQL_ROOT_PASSWORD: abc@123
-      MYSQL_DATABASE: revticketsnew
     ports:
-      - "3307:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ptest"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
     networks:
       - revtickets-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
 
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
+  revtickets-mongodb:
+    image: mongo:7.0
+    container_name: revtickets-mongodb
     ports:
       - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
     networks:
       - revtickets-network
 
-  backend:
-    image: revtickets-backend:latest
-    container_name: backend
+  # Service Discovery
+  revtickets-eureka:
+    image: shashank092/revtickets-eureka:latest
+    container_name: revtickets-eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - revtickets-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # API Gateway
+  revtickets-gateway:
+    image: shashank092/revtickets-gateway:latest
+    container_name: revtickets-gateway
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revticketsnew?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
+      SPRING_WEB_CORS_ALLOWED_ORIGINS: "*"
+      SPRING_WEB_CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,OPTIONS"
+      SPRING_WEB_CORS_ALLOWED_HEADERS: "*"
+    ports:
+      - "9090:9090"
+    depends_on:
+      revtickets-eureka:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+
+  # Microservices
+  revtickets-user:
+    image: shashank092/revtickets-user:latest
+    container_name: revtickets-user
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_user_db
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: abc@123
-      SPRING_DATA_MONGODB_HOST: mongodb
-      SPRING_DATA_MONGODB_PORT: 27017
-      CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:4200,http://localhost:80
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
+      CORS_ALLOWED_ORIGINS: "*"
+      SPRING_WEB_CORS_ALLOWED_ORIGINS: "*"
     ports:
-      - "8080:8080"
+      - "8081:8081"
     depends_on:
-      mysql:
+      revtickets-mysql:
         condition: service_healthy
-      mongodb:
-        condition: service_started
+      revtickets-eureka:
+        condition: service_healthy
     networks:
       - revtickets-network
 
-  frontend:
-    image: revtickets-frontend:latest
-    container_name: frontend
+  revtickets-movie:
+    image: shashank092/revtickets-movie:latest
+    container_name: revtickets-movie
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_movie_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      SPRING_DATA_MONGODB_URI: mongodb://revtickets-mongodb:27017/revtickets_movie_db
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
+      CORS_ALLOWED_ORIGINS: "*"
     ports:
-      - "80:80"
+      - "8082:8082"
     depends_on:
-      - backend
+      revtickets-mysql:
+        condition: service_healthy
+      revtickets-mongodb:
+        condition: service_started
+      revtickets-eureka:
+        condition: service_healthy
     networks:
       - revtickets-network
+
+  revtickets-venue:
+    image: shashank092/revtickets-venue:latest
+    container_name: revtickets-venue
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_venue_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
+      CORS_ALLOWED_ORIGINS: "*"
+    ports:
+      - "8083:8083"
+    depends_on:
+      revtickets-mysql:
+        condition: service_healthy
+      revtickets-eureka:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+
+  revtickets-booking:
+    image: shashank092/revtickets-booking:latest
+    container_name: revtickets-booking
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_booking_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
+      CORS_ALLOWED_ORIGINS: "*"
+    ports:
+      - "8084:8084"
+    depends_on:
+      revtickets-mysql:
+        condition: service_healthy
+      revtickets-eureka:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+
+  revtickets-payment:
+    image: shashank092/revtickets-payment:latest
+    container_name: revtickets-payment
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_payment_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
+      CORS_ALLOWED_ORIGINS: "*"
+    ports:
+      - "8085:8085"
+    depends_on:
+      revtickets-mysql:
+        condition: service_healthy
+      revtickets-eureka:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+
+  # Frontend
+  revtickets-frontend:
+    image: shashank092/revtickets-frontend:latest
+    container_name: revtickets-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - revtickets-gateway
+    networks:
+      - revtickets-network
+
+  # Database Initialization
+  revtickets-db-init:
+    image: mysql:8.0
+    container_name: revtickets-db-init
+    environment:
+      MYSQL_ROOT_PASSWORD: abc@123
+    depends_on:
+      revtickets-mysql:
+        condition: service_healthy
+    networks:
+      - revtickets-network
+    command: >
+      bash -c "
+        mysql -h revtickets-mysql -u root -pabc@123 -e '
+        CREATE DATABASE IF NOT EXISTS revtickets_user_db;
+        CREATE DATABASE IF NOT EXISTS revtickets_movie_db;
+        CREATE DATABASE IF NOT EXISTS revtickets_venue_db;
+        CREATE DATABASE IF NOT EXISTS revtickets_booking_db;
+        CREATE DATABASE IF NOT EXISTS revtickets_payment_db;'
+      "
+    restart: "no"
 
 networks:
   revtickets-network:
     driver: bridge
+
+volumes:
+  mysql_data:
+  mongodb_data:
