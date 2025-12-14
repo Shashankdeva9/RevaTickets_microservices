@@ -1,72 +1,138 @@
-# RevTickets Docker Setup - Quick Reference
+# 🐳 Quick Docker Startup Guide
 
-## Files Created
+## ⚡ Get Started in 30 Seconds
 
-### Docker Compose Files
-1. **docker-compose-full.yml** - Build images locally and run
-2. **docker-compose-hub.yml** - Pull pre-built images from Docker Hub
-3. **init-db.sql** - Initialize MySQL databases
+### Option 1: Windows (PowerShell)
 
-### Jenkins Pipeline
-- **Jenkinsfile-Docker** - Automated CI/CD pipeline
-
-### Build Scripts
-- **build-and-push-docker.bat** - Build all images and push to Docker Hub
-- **start-docker.bat** - Start application with Docker Compose
-- **stop-docker.bat** - Stop all Docker containers
-
-### Configuration Files
-- **application-docker.properties** - Created for each microservice (5 files)
-- **environment.docker.ts** - Frontend Docker environment
-
-## Quick Commands
-
-### Local Build and Run
-```bash
-# Build and push to Docker Hub
-.\build-and-push-docker.bat your-dockerhub-username
-
-# Start application
-.\start-docker.bat
-
-# Stop application
-.\stop-docker.bat
+```powershell
+cd "Rev-Tickets-Microservices"
+docker-compose up -d
+Start-Sleep -Seconds 30
+docker-compose ps
 ```
 
-### Using Pre-built Images
+### Option 2: Mac/Linux (Terminal)
+
 ```bash
-# Set your Docker Hub username
-set DOCKER_REGISTRY=your-username
-
-# Pull and run
-docker-compose -f docker-compose-hub.yml up -d
-
-# Stop
-docker-compose -f docker-compose-hub.yml down
+cd Rev-Tickets-Microservices
+docker-compose up -d
+sleep 30
+docker-compose ps
 ```
 
-### Jenkins Pipeline
-1. Configure credentials in Jenkins
-2. Create pipeline job pointing to Jenkinsfile-Docker
-3. Run build - Jenkins will build, push, and deploy automatically
+### Option 3: Windows (CMD)
 
-## Access Points
-- Frontend: http://localhost:4200
-- API Gateway: http://localhost:9090
-- Eureka: http://localhost:8761
-- MySQL: localhost:3306 (root/abc@123)
-- MongoDB: localhost:27017
+```cmd
+cd Rev-Tickets-Microservices
+docker-compose up -d
+timeout /t 30
+docker-compose ps
+```
 
-## Before You Start
-1. Update `DOCKER_REGISTRY` in Jenkinsfile-Docker with your Docker Hub username
-2. Update docker-compose-hub.yml if pulling from your registry
-3. Ensure Docker Desktop is running
-4. Login to Docker Hub: `docker login`
+---
 
-## Next Steps
-1. Test locally: `.\start-docker.bat`
-2. Push to Docker Hub: `.\build-and-push-docker.bat your-username`
-3. Setup Jenkins pipeline for CI/CD
-4. Deploy to production server
+## ✅ Verify Everything is Running
 
-See DOCKER-DEPLOYMENT.md for detailed documentation.
+### Check All Services
+
+```bash
+docker-compose ps
+```
+
+Expected output:
+```
+NAME                   STATUS
+revtickets-mysql       Up (healthy)
+revtickets-mongodb     Up (healthy)
+revtickets-eureka      Up (healthy)
+revtickets-gateway     Up (healthy)
+revtickets-user-service     Up
+revtickets-movie-service    Up
+revtickets-venue-service    Up
+revtickets-booking-service  Up
+revtickets-payment-service  Up
+revtickets-frontend    Up (healthy)
+```
+
+### Access Applications
+
+| Service | URL |
+|---------|-----|
+| **Frontend** | http://localhost:4200 |
+| **API Gateway** | http://localhost:8080 |
+| **Eureka Dashboard** | http://localhost:8761 |
+
+---
+
+## 🛑 Stop All Services
+
+```bash
+docker-compose down
+```
+
+**To also delete databases:**
+```bash
+docker-compose down -v
+```
+
+---
+
+## 📊 View Service Logs
+
+```bash
+# View all logs (follow mode)
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f user-service
+
+# View last 50 lines
+docker-compose logs --tail=50 api-gateway
+```
+
+---
+
+## 🔧 Rebuild and Restart
+
+```bash
+# Rebuild all images
+docker-compose build
+
+# Rebuild specific service
+docker-compose build user-service
+
+# Restart services
+docker-compose restart
+```
+
+---
+
+## 📦 Docker Images Built
+
+✅ All images created with:
+- Multi-stage builds (smaller images)
+- Non-root users (security)
+- Health checks (orchestration ready)
+- Optimized JVM settings
+- Alpine Linux base (minimal)
+
+---
+
+## 🚀 Next Steps
+
+1. ✅ Run: `docker-compose up -d`
+2. ✅ Verify: `docker-compose ps`
+3. ✅ Open: http://localhost:4200
+4. ✅ Test APIs: Use RevTickets_Postman_Collection.json
+5. ✅ Check logs: `docker-compose logs -f`
+
+---
+
+## 📖 For More Information
+
+- **DOCKER-DEPLOYMENT.md** - Comprehensive Docker guide
+- **JENKINS-SETUP.md** - CI/CD pipeline setup
+- **README.md** - System architecture
+- **RUN-LOCALLY.md** - Local development setup
+
+**Happy Deploying! 🎉**

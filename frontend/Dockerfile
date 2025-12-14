@@ -1,7 +1,6 @@
-# Multi-stage build for Angular
+# Build stage
 FROM node:20-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
@@ -10,23 +9,34 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy all source files
+# Copy source
 COPY . .
 
-# Build the application for production
+# Build for production
 RUN npm run build -- --configuration production
 
 # Production stage
 FROM nginx:alpine
 
-# Copy built application from build stage
-COPY --from=build /app/dist/revtickets-frontend/browser /usr/share/nginx/html
+WORKDIR /usr/share/nginx/html
 
-# Copy nginx configuration
+# Remove default nginx config
+RUN rm -rf /etc/nginx/conf.d/*
+
+# Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
+# Copy built application
+COPY --from=build /app/dist/revtickets-frontend/browser .
+
+# Create nginx user
+RUN addgroup -g 1000 nginx && adduser -D -u 1000 -G nginx nginx
+USER nginx
+
 EXPOSE 80
 
-# Start nginx
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
+
 CMD ["nginx", "-g", "daemon off;"]

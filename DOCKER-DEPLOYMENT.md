@@ -1,290 +1,397 @@
-# RevTickets Docker Deployment Guide
+# Docker & CI/CD Deployment Guide
 
-## Prerequisites
+## 📋 Quick Start with Docker
+
+### Prerequisites
 - Docker Desktop installed and running
-- Docker Hub account (for pushing images)
-- Maven installed (for building microservices)
-- Git (for version control)
+- Docker Compose installed (included with Docker Desktop)
+- Port availability: 4200, 8080, 8081-8085, 8761, 3306, 27017
 
-## Quick Start
-
-### 1. Build and Push Images to Docker Hub
+### Start All Services with Docker Compose
 
 ```bash
-# Build all services and push to Docker Hub
-.\build-and-push-docker.bat your-dockerhub-username
+# Navigate to project root
+cd Rev-Tickets-Microservices
 
-# Or run step by step:
-docker login
-.\build-and-push-docker.bat
+# Build and start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Check service status
+docker-compose ps
 ```
 
-### 2. Run Application with Docker Compose
+### Access Services
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| **Frontend** | http://localhost:4200 | Angular Web Application |
+| **API Gateway** | http://localhost:8080 | REST API Gateway |
+| **Eureka Dashboard** | http://localhost:8761 | Service Registry |
+| **MySQL** | localhost:3306 | Database (root/abc@123) |
+| **MongoDB** | localhost:27017 | NoSQL Database (root/abc@123) |
+
+### Stop All Services
 
 ```bash
-# Start all services
-.\start-docker.bat
+docker-compose down
 
-# Or manually:
-docker-compose -f docker-compose-full.yml up -d
+# Remove volumes (reset databases)
+docker-compose down -v
+
+# View all running services
+docker-compose ps
 ```
 
-### 3. Access the Application
+---
 
-- **Frontend**: http://localhost:4200
-- **API Gateway**: http://localhost:9090
-- **Eureka Dashboard**: http://localhost:8761
-- **MySQL**: localhost:3306 (root/abc@123)
-- **MongoDB**: localhost:27017
+## 🐳 Docker Architecture
 
-### 4. Stop Application
+### Docker Compose Services
+
+**Databases:**
+- `mysql`: MySQL 8.0 with 4 pre-configured databases
+- `mongodb`: MongoDB 7.0 with authentication
+
+**Backend Services:**
+- `eureka-server`: Service Registry on port 8761
+- `api-gateway`: Spring Cloud Gateway on port 8080
+- `user-service`: User Management on port 8081
+- `movie-service`: Movie Management on port 8082
+- `venue-service`: Venue Management on port 8083
+- `booking-service`: Booking Management on port 8084
+- `payment-service`: Payment Management on port 8085
+
+**Frontend:**
+- `frontend`: Angular application on port 4200 (nginx)
+
+### Network Configuration
+
+All services are connected via `revtickets-network` (bridge network) for inter-service communication using service names as hostnames.
+
+Example: `http://mysql:3306`, `http://eureka-server:8761`
+
+---
+
+## 🔨 Building Docker Images
+
+### Build All Images
 
 ```bash
-.\stop-docker.bat
-
-# Or manually:
-docker-compose -f docker-compose-full.yml down
+docker-compose build
 ```
 
-## Docker Images
-
-The application consists of 8 Docker images:
-
-1. **revtickets-eureka** - Service Discovery (Port 8761)
-2. **revtickets-gateway** - API Gateway (Port 9090)
-3. **revtickets-user** - User Management (Port 8081)
-4. **revtickets-movie** - Movie & Event Management (Port 8082)
-5. **revtickets-venue** - Venue Management (Port 8083)
-6. **revtickets-booking** - Booking & Show Management (Port 8084)
-7. **revtickets-payment** - Payment Processing (Port 8085)
-8. **revtickets-frontend** - Angular Frontend (Port 80 → mapped to 4200)
-
-## Architecture
-
-```
-┌─────────────┐
-│   Frontend  │ :4200
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ API Gateway │ :9090
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│   Eureka    │ :8761 (Service Registry)
-└──────┬──────┘
-       │
-       ├──────┬──────┬──────┬──────┬──────┐
-       ▼      ▼      ▼      ▼      ▼      ▼
-    User   Movie  Venue  Booking Payment
-    :8081  :8082  :8083  :8084   :8085
-       │      │      │      │       │
-       └──────┴──────┴──────┴───────┘
-              │              │
-              ▼              ▼
-           MySQL          MongoDB
-           :3306          :27017
-```
-
-## Jenkins Pipeline Deployment
-
-### Setup Jenkins
-
-1. **Install Jenkins Plugins**:
-   - Docker Pipeline
-   - Docker Commons
-   - Git Plugin
-
-2. **Configure Credentials in Jenkins**:
-   - Docker Hub credentials (ID: `docker-hub-credentials`)
-   - Git credentials (ID: `git-credentials`)
-
-3. **Create Pipeline Job**:
-   - New Item → Pipeline
-   - Pipeline script from SCM
-   - Repository: https://github.com/Shashankdeva9/RevaTickets_microservices.git
-   - Script Path: `Jenkinsfile-Docker`
-
-4. **Build the Pipeline**:
-   - Click "Build Now"
-   - Jenkins will:
-     - Checkout code
-     - Build all microservices with Maven
-     - Create Docker images
-     - Push images to Docker Hub
-     - Deploy with docker-compose
-     - Run health checks
-
-## Manual Docker Commands
-
-### Build Individual Images
+### Build Specific Service
 
 ```bash
-# Eureka Server
-cd microservices/eureka-server
-mvn clean package -DskipTests
-docker build -t your-username/revtickets-eureka:latest .
+# Build only API Gateway
+docker-compose build api-gateway
 
-# API Gateway
-cd microservices/api-gateway
-mvn clean package -DskipTests
-docker build -t your-username/revtickets-gateway:latest .
-
-# Repeat for other services...
+# Build only Frontend
+docker-compose build frontend
 ```
 
-### Push Images
+### Manual Docker Build
 
 ```bash
-docker push your-username/revtickets-eureka:latest
-docker push your-username/revtickets-gateway:latest
-docker push your-username/revtickets-user:latest
-docker push your-username/revtickets-movie:latest
-docker push your-username/revtickets-venue:latest
-docker push your-username/revtickets-booking:latest
-docker push your-username/revtickets-payment:latest
-docker push your-username/revtickets-frontend:latest
+# Build individual service
+docker build -t revtickets/user-service:1.0.0 microservices/user-service/
+
+# Build frontend
+docker build -t revtickets/frontend:1.0.0 frontend/
+
+# Tag for registry
+docker tag revtickets/user-service:1.0.0 docker.io/yourusername/revtickets/user-service:1.0.0
 ```
 
-### View Logs
+---
+
+## 📦 Docker Image Details
+
+### Multi-Stage Builds
+All microservice Dockerfiles use multi-stage builds:
+1. **Build Stage**: Maven builds the application
+2. **Production Stage**: Minimal runtime image with just JRE
+
+### Features
+- ✅ Non-root user execution (UID 1000)
+- ✅ Health checks for container orchestration
+- ✅ Optimized JVM settings (G1GC)
+- ✅ Alpine Linux for smaller images
+- ✅ Proper signal handling
+
+### Optimizations
+- **Memory**: 256MB-512MB per service (configurable via JVM_OPTS)
+- **Base Images**:
+  - Backend: `eclipse-temurin:17-jre-alpine` (~170MB)
+  - Frontend: `nginx:alpine` (~40MB)
+
+---
+
+## 🔄 CI/CD Pipeline with Jenkins
+
+### Jenkinsfile Overview
+
+The included `Jenkinsfile` provides:
+
+**Pipeline Stages:**
+1. **Checkout** - Clone repository
+2. **Build Backend** - Parallel Maven builds for all 7 microservices
+3. **Build Frontend** - Angular build with production optimization
+4. **Run Tests** - Execute unit tests (main branch only)
+5. **Code Quality** - SonarQube analysis (when configured)
+6. **Build Docker Images** - Create Docker images for all services
+7. **Push Images** - Push to Docker registry (main branch only)
+8. **Deploy** - Docker Compose deployment
+9. **Health Check** - Verify all services are operational
+
+### Jenkins Setup
+
+#### 1. Install Jenkins Plugins
+Required plugins:
+- Git plugin
+- Docker plugin
+- Pipeline plugin
+- Credentials Binding plugin
+
+#### 2. Create Credentials
+In Jenkins, add credentials:
+
+**Docker Hub Credentials:**
+- ID: `docker-hub-credentials`
+- Type: Username with password
+- Username: Your Docker Hub username
+- Password: Your Docker Hub token
+
+**Git Credentials (if private repo):**
+- SSH key or Personal Access Token
+
+#### 3. Create Jenkins Job
+
+```groovy
+// Option 1: Create Pipeline job from SCM
+Job Type: Pipeline
+Definition: Pipeline script from SCM
+SCM: Git
+Repository URL: https://github.com/yourusername/Rev-Tickets-Microservices.git
+Script Path: Jenkinsfile
+```
+
+#### 4. Configure Webhook (Optional)
+
+GitHub Settings → Webhooks:
+```
+Payload URL: http://jenkins-server:8080/github-webhook/
+Events: Push events
+Content type: application/json
+```
+
+### Jenkins Execution
 
 ```bash
-# All services
-docker-compose -f docker-compose-full.yml logs -f
-
-# Specific service
-docker-compose -f docker-compose-full.yml logs -f api-gateway
-
-# Individual container
-docker logs revtickets-gateway -f
+# Trigger pipeline from command line
+curl -X POST http://jenkins-server:8080/job/RevTickets/build \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
-### Check Service Health
+---
+
+## 🚀 Docker Registry Integration
+
+### Docker Hub
 
 ```bash
-# Check running containers
-docker ps
+# Login
+docker login -u your-username -p your-password
 
-# Check service health
-curl http://localhost:8761/actuator/health  # Eureka
-curl http://localhost:9090/actuator/health  # Gateway
-curl http://localhost:8081/actuator/health  # User Service
+# Tag image
+docker tag revtickets/user-service:latest your-username/revtickets/user-service:latest
+
+# Push to registry
+docker push your-username/revtickets/user-service:latest
+
+# Pull from registry
+docker pull your-username/revtickets/user-service:latest
 ```
 
-## Database Configuration
+### Private Registry (Harbor, Artifactory, etc.)
 
-### MySQL Databases
-- `revtickets_user_db` - User data
-- `revtickets_movie_db` - Movies and events
-- `revtickets_venue_db` - Venues and screens
-- `revtickets_booking_db` - Bookings and shows
-- `revtickets_payment_db` - Payment transactions
-
-All databases are auto-created on startup via `init-db.sql`.
-
-### MongoDB
-- Database: `revtickets_reviews`
-- Collection: Movie reviews
-
-## Environment Variables
-
-Services use environment variables for Docker networking:
-
-```yaml
-SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/database_name
-SPRING_DATASOURCE_USERNAME: root
-SPRING_DATASOURCE_PASSWORD: abc@123
-SPRING_DATA_MONGODB_HOST: mongodb
-EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
-```
-
-## Troubleshooting
-
-### Services not registering with Eureka
 ```bash
-# Check Eureka logs
-docker logs revtickets-eureka -f
+# Login to private registry
+docker login registry.example.com
 
-# Restart service
-docker-compose -f docker-compose-full.yml restart api-gateway
+# Tag for private registry
+docker tag revtickets/user-service registry.example.com/revtickets/user-service:1.0.0
+
+# Push to private registry
+docker push registry.example.com/revtickets/user-service:1.0.0
 ```
 
-### Database connection errors
+---
+
+## 📊 Monitoring & Debugging
+
+### View Container Logs
+
 ```bash
-# Check MySQL is healthy
-docker exec revtickets-mysql mysqladmin ping -uroot -pabc@123
+# View specific service logs
+docker-compose logs -f user-service
 
-# Check databases exist
-docker exec revtickets-mysql mysql -uroot -pabc@123 -e "SHOW DATABASES;"
+# View last 100 lines
+docker-compose logs --tail=100 api-gateway
+
+# View logs for all services
+docker-compose logs -f
 ```
 
-### Frontend can't connect to backend
-- Check API Gateway is running: `docker ps | grep gateway`
-- Check CORS configuration in `api-gateway/application.yml`
-- Verify frontend environment points to `http://localhost:9090/api`
+### Execute Commands in Container
 
-### Container memory issues
 ```bash
-# Increase Docker Desktop memory limit
-# Settings → Resources → Memory → 8GB recommended
+# Access MySQL
+docker exec -it revtickets-mysql mysql -u root -pabc@123
+
+# Access MongoDB
+docker exec -it revtickets-mongodb mongosh -u root -p abc@123
+
+# Execute shell in Java service
+docker exec -it revtickets-user-service /bin/sh
 ```
 
-## Updating the Application
+### Performance Monitoring
 
-### Update and rebuild specific service
 ```bash
-# Make code changes
-cd microservices/user-service
-mvn clean package -DskipTests
-docker build -t your-username/revtickets-user:latest .
-docker push your-username/revtickets-user:latest
+# CPU and Memory usage
+docker stats
 
-# Restart just that service
-docker-compose -f docker-compose-full.yml up -d --no-deps --build user-service
+# Inspect container
+docker inspect revtickets-user-service
+
+# Check container logs for errors
+docker logs revtickets-api-gateway | grep ERROR
 ```
 
-## Production Considerations
+---
 
-1. **Security**:
-   - Change default MySQL password
-   - Use secrets management for credentials
-   - Enable HTTPS with SSL certificates
+## 🔧 Production Deployment
 
-2. **Scaling**:
-   - Use `docker-compose scale` for horizontal scaling
-   - Configure load balancer in front of gateway
+### Kubernetes Deployment
 
-3. **Monitoring**:
-   - Add Prometheus and Grafana
-   - Configure centralized logging (ELK stack)
-   - Set up alerts for service health
+Generate Kubernetes manifests:
 
-4. **Backup**:
-   - Regular MySQL backups: `docker exec revtickets-mysql mysqldump -uroot -pabc@123 --all-databases > backup.sql`
-   - MongoDB backups: `docker exec revtickets-mongodb mongodump`
-
-## Clean Up
-
-### Remove all containers and volumes
 ```bash
-docker-compose -f docker-compose-full.yml down -v
+# Convert docker-compose to Kubernetes (using Kompose)
+kompose convert -f docker-compose.yml -o k8s/
+
+# Deploy to Kubernetes
+kubectl apply -f k8s/
 ```
 
-### Remove all images
+### Docker Swarm Deployment
+
 ```bash
-docker rmi $(docker images 'revtickets-*' -q)
+# Initialize Swarm (on manager node)
+docker swarm init
+
+# Deploy stack
+docker stack deploy -c docker-compose.yml revtickets
+
+# View stack services
+docker stack services revtickets
+
+# Remove stack
+docker stack rm revtickets
 ```
 
-### Full cleanup
+### Environment-Specific Configuration
+
+Create separate docker-compose files:
+
 ```bash
-docker system prune -a --volumes
+docker-compose -f docker-compose.yml \
+              -f docker-compose.prod.yml \
+              up -d
 ```
 
-## Support
+---
+
+## 🐛 Troubleshooting
+
+### Container Won't Start
+
+```bash
+# Check logs
+docker logs revtickets-user-service
+
+# Inspect exit code
+docker inspect revtickets-user-service | grep -A 5 "State"
+
+# Check resource limits
+docker stats --no-stream
+```
+
+### Database Connection Issues
+
+```bash
+# Test MySQL connection
+docker exec -it revtickets-mysql mysql -h mysql -u root -pabc@123 -e "SELECT 1"
+
+# Test MongoDB connection
+docker exec -it revtickets-mongodb mongosh -u root -p abc@123 --eval "db.adminCommand('ping')"
+```
+
+### Network Issues
+
+```bash
+# Inspect network
+docker network inspect revtickets-network
+
+# Test DNS resolution
+docker exec revtickets-api-gateway nslookup eureka-server
+
+# Test port connectivity
+docker exec revtickets-api-gateway curl -v http://eureka-server:8761
+```
+
+### Rebuild and Restart
+
+```bash
+# Full clean rebuild
+docker-compose down -v
+docker-compose build --no-cache
+docker-compose up -d
+
+# Rebuild specific service
+docker-compose build --no-cache user-service
+docker-compose up -d user-service
+```
+
+---
+
+## 📝 Docker Best Practices Used
+
+✅ **Multi-Stage Builds** - Smaller production images
+✅ **Non-Root Users** - Enhanced security
+✅ **Health Checks** - Container orchestration ready
+✅ **Optimized JVM** - G1GC for better performance
+✅ **Alpine Linux** - Minimal attack surface
+✅ **Environment Variables** - Configuration flexibility
+✅ **.dockerignore** - Faster builds
+✅ **Explicit Port Mapping** - Clear service discovery
+
+---
+
+## 📞 Support
 
 For issues or questions:
-- Check logs: `docker-compose -f docker-compose-full.yml logs`
-- GitHub Issues: https://github.com/Shashankdeva9/RevaTickets_microservices/issues
+1. Check logs: `docker-compose logs [service]`
+2. Review [README.md](README.md) for system overview
+3. Check [RUN-LOCALLY.md](RUN-LOCALLY.md) for local setup
+4. Review [AUDIT-REPORT.md](AUDIT-REPORT.md) for verification status
+
+---
+
+**Last Updated:** December 14, 2025
+**Docker Version Required:** 20.10+
+**Docker Compose Version Required:** 2.0+

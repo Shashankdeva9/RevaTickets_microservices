@@ -1,12 +1,50 @@
-target/
-.git/
+# Git
+.git
 .gitignore
-*.md
-*.bat
-*.sh
-.idea/
-.vscode/
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
 *.iml
-node_modules/
-.angular/
+.classpath
+.project
+.settings/
+
+# Build
+target/
 dist/
+build/
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies
+.npm
+.gradle
+.m2
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Documentation
+docs/
+README.md
+*.md
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

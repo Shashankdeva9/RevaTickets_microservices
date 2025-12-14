@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:9090/api',
+  apiUrl: 'http://localhost:8080/api',
   stripePublicKey: 'pk_test_your_stripe_public_key_here',
-  wsUrl: 'ws://localhost:9090/ws'
+  wsUrl: 'ws://localhost:8080/ws'
 };

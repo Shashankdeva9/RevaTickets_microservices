@@ -1,142 +1,97 @@
 @echo off
-REM RevTickets - Quick Start Script
-REM Starts all microservices in order
+REM ╔════════════════════════════════════════════════════════════╗
+REM ║  RevTickets - Start All Services (Local Mode)             ║
+REM ║  Starts: 7 Microservices + Frontend                       ║
+REM ╚════════════════════════════════════════════════════════════╝
 
-color 0A
-title RevTickets - Starting Services
+setlocal enabledelayedexpansion
 
-echo ========================================
-echo    RevTickets Microservices Startup
-echo ========================================
+echo.
+echo ╔════════════════════════════════════════════════════════════╗
+echo ║  Starting RevTickets Services...                           ║
+echo ║  Eureka + API Gateway + 5 Services + Frontend             ║
+echo ╚════════════════════════════════════════════════════════════╝
 echo.
 
-REM Verify MySQL is running
-echo [*] Checking MySQL connection...
-mysql -u root -pabc@123 -e "SELECT 1;" >nul 2>&1
+REM Kill any existing Java and Node processes
+echo [*] Cleaning up existing processes...
+taskkill /F /IM java.exe >nul 2>&1
+taskkill /F /IM node.exe >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+REM Verify databases are running
+echo [*] Checking databases...
+netstat -ano | findstr :3306 >nul 2>&1
 if errorlevel 1 (
-    echo [X] ERROR: Cannot connect to MySQL!
-    echo     Please ensure MySQL is running
-    echo     Username: root
-    echo     Password: abc@123
-    echo.
+    echo [ERROR] MySQL is not running on port 3306!
+    echo Please start MySQL before running this script.
     pause
     exit /b 1
 )
-echo [✓] MySQL connection verified
-echo.
+echo [✓] MySQL running
 
-REM Check databases
-echo [*] Verifying databases...
-mysql -u root -pabc@123 -e "USE revtickets_user_db;" >nul 2>&1
+netstat -ano | findstr :27017 >nul 2>&1
 if errorlevel 1 (
-    echo [*] Creating databases...
-    mysql -u root -pabc@123 < database-setup.sql
-    if errorlevel 1 (
-        echo [X] Failed to create databases
-        pause
-        exit /b 1
-    )
-    echo [✓] Databases created successfully
-) else (
-    echo [✓] Databases already exist
+    echo [ERROR] MongoDB is not running on port 27017!
+    echo Please start MongoDB before running this script.
+    pause
+    exit /b 1
 )
+echo [✓] MongoDB running
 echo.
 
-echo ========================================
-echo    Starting Services...
-echo ========================================
-echo.
+REM Change to project root directory
+cd /d "%~dp0"
 
 REM Start Eureka Server
-echo [1/7] Starting Eureka Server (8761)...
-cd microservices\eureka-server
-start "Eureka Server - 8761" cmd /k "mvn spring-boot:run"
-cd ..\..
-echo       Waiting 30 seconds for Eureka...
-timeout /t 30 /nobreak >nul
-echo [✓] Eureka Server started
-echo.
-
-REM Start User Service
-echo [2/7] Starting User Service (8081)...
-cd microservices\user-service
-start "User Service - 8081" cmd /k "mvn spring-boot:run"
-cd ..\..
-timeout /t 10 /nobreak >nul
-echo [✓] User Service started
-echo.
-
-REM Start Movie Service
-echo [3/7] Starting Movie Service (8082)...
-cd microservices\movie-service
-start "Movie Service - 8082" cmd /k "mvn spring-boot:run"
-cd ..\..
-timeout /t 10 /nobreak >nul
-echo [✓] Movie Service started
-echo.
-
-REM Start Venue Service
-echo [4/7] Starting Venue Service (8083)...
-cd microservices\venue-service
-start "Venue Service - 8083" cmd /k "mvn spring-boot:run"
-cd ..\..
-timeout /t 10 /nobreak >nul
-echo [✓] Venue Service started
-echo.
-
-REM Start Booking Service
-echo [5/7] Starting Booking Service (8084)...
-cd microservices\booking-service
-start "Booking Service - 8084" cmd /k "mvn spring-boot:run"
-cd ..\..
-timeout /t 10 /nobreak >nul
-echo [✓] Booking Service started
-echo.
-
-REM Start Payment Service
-echo [6/7] Starting Payment Service (8085)...
-cd microservices\payment-service
-start "Payment Service - 8085" cmd /k "mvn spring-boot:run"
-cd ..\..
-timeout /t 10 /nobreak >nul
-echo [✓] Payment Service started
-echo.
+echo [1/8] Starting Eureka Server (8761)...
+start "Eureka Server" cmd /k "cd /d %cd%\microservices\eureka-server && java -jar target\eureka-server-1.0.0.jar"
+timeout /t 5 /nobreak >nul
 
 REM Start API Gateway
-echo [7/7] Starting API Gateway (9090)...
-cd microservices\api-gateway
-start "API Gateway - 9090" cmd /k "mvn spring-boot:run"
-cd ..\..
-timeout /t 15 /nobreak >nul
-echo [✓] API Gateway started
-echo.
+echo [2/8] Starting API Gateway (8080)...
+start "API Gateway" cmd /k "cd /d %cd%\microservices\api-gateway && java -jar target\api-gateway-1.0.0.jar"
+timeout /t 5 /nobreak >nul
 
-echo ========================================
-echo    All Services Running!
-echo ========================================
+REM Start User Service
+echo [3/8] Starting User Service (8081)...
+start "User Service" cmd /k "cd /d %cd%\microservices\user-service && java -jar target\user-service-1.0.0.jar"
+timeout /t 3 /nobreak >nul
+
+REM Start Movie Service
+echo [4/8] Starting Movie Service (8082)...
+start "Movie Service" cmd /k "cd /d %cd%\microservices\movie-service && java -jar target\movie-service-1.0.0.jar"
+timeout /t 3 /nobreak >nul
+
+REM Start Venue Service
+echo [5/8] Starting Venue Service (8083)...
+start "Venue Service" cmd /k "cd /d %cd%\microservices\venue-service && java -jar target\venue-service-1.0.0.jar"
+timeout /t 3 /nobreak >nul
+
+REM Start Booking Service
+echo [6/8] Starting Booking Service (8084)...
+start "Booking Service" cmd /k "cd /d %cd%\microservices\booking-service && java -jar target\booking-service-1.0.0.jar"
+timeout /t 3 /nobreak >nul
+
+REM Start Payment Service
+echo [7/8] Starting Payment Service (8085)...
+start "Payment Service" cmd /k "cd /d %cd%\microservices\payment-service && java -jar target\payment-service-1.0.0.jar"
+timeout /t 3 /nobreak >nul
+
+REM Start Frontend
+echo [8/8] Starting Angular Frontend (4200)...
+start "Angular Frontend" cmd /k "cd /d %cd%\frontend && npm install && ng serve --host 0.0.0.0 --port 4200"
+
 echo.
-echo Service URLs:
-echo   Eureka:    http://localhost:8761
-echo   Gateway:   http://localhost:9090
-echo   User:      http://localhost:8081
-echo   Movie:     http://localhost:8082
-echo   Venue:     http://localhost:8083
-echo   Booking:   http://localhost:8084
-echo   Payment:   http://localhost:8085
+echo ╔════════════════════════════════════════════════════════════╗
+echo ║  All services starting in separate windows...             ║
+echo ║                                                            ║
+echo ║  Eureka:    http://localhost:8761                         ║
+echo ║  API Gateway: http://localhost:8080                       ║
+echo ║  Frontend:  http://localhost:4200                         ║
+echo ║                                                            ║
+echo ║  Close any window to stop that service                    ║
+echo ║  Run STOP.bat to stop all services at once               ║
+echo ╚════════════════════════════════════════════════════════════╝
 echo.
-echo Admin Login:
-echo   Email:     admin@revature.com
-echo   Password:  admin@123
-echo.
-echo ========================================
-echo.
-echo To start frontend:
-echo   cd frontend
-echo   npm install
-echo   npm start
-echo.
-echo Frontend will be at: http://localhost:4200
-echo.
-echo Press any key to open Eureka Dashboard...
-pause >nul
-start http://localhost:8761
+pause

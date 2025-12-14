@@ -1,201 +1,231 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  # Database Services
-  revtickets-mysql:
+  # MySQL Database
+  mysql:
     image: mysql:8.0
     container_name: revtickets-mysql
     environment:
       MYSQL_ROOT_PASSWORD: abc@123
+      MYSQL_DATABASE: revtickets_db
+      MYSQL_USER: revuser
+      MYSQL_PASSWORD: revpass@123
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
+      - ./init-scripts/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - revtickets-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
+      interval: 10s
 
-  revtickets-mongodb:
+  # MongoDB Database
+  mongodb:
     image: mongo:7.0
     container_name: revtickets-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: abc@123
+      MONGO_INITDB_DATABASE: revtickets_movie_db
     ports:
       - "27017:27017"
     volumes:
-      - mongodb_data:/data/db
-    networks:
-      - revtickets-network
-
-  # Service Discovery
-  revtickets-eureka:
-    image: shashank092/revtickets-eureka:latest
-    container_name: revtickets-eureka
-    ports:
-      - "8761:8761"
+      - mongodb-data:/data/db
     networks:
       - revtickets-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  # Eureka Server (Service Registry)
+  eureka-server:
+    build:
+      context: ./microservices/eureka-server
+      dockerfile: Dockerfile
+    container_name: revtickets-eureka
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_APPLICATION_NAME: eureka-server
+      SERVER_PORT: 8761
+    networks:
+      - revtickets-network
+    depends_on:
+      - mysql
+      - mongodb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
 
   # API Gateway
-  revtickets-gateway:
-    image: shashank092/revtickets-gateway:latest
+  api-gateway:
+    build:
+      context: ./microservices/api-gateway
+      dockerfile: Dockerfile
     container_name: revtickets-gateway
-    environment:
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
-      SPRING_WEB_CORS_ALLOWED_ORIGINS: "*"
-      SPRING_WEB_CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,OPTIONS"
-      SPRING_WEB_CORS_ALLOWED_HEADERS: "*"
     ports:
-      - "9090:9090"
-    depends_on:
-      revtickets-eureka:
-        condition: service_healthy
+      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_NAME: api-gateway
+      SPRING_CLOUD_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SERVER_PORT: 8080
     networks:
       - revtickets-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
 
-  # Microservices
-  revtickets-user:
-    image: shashank092/revtickets-user:latest
-    container_name: revtickets-user
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_user_db
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: abc@123
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
-      CORS_ALLOWED_ORIGINS: "*"
-      SPRING_WEB_CORS_ALLOWED_ORIGINS: "*"
+  # User Service
+  user-service:
+    build:
+      context: ./microservices/user-service
+      dockerfile: Dockerfile
+    container_name: revtickets-user-service
     ports:
       - "8081:8081"
-    depends_on:
-      revtickets-mysql:
-        condition: service_healthy
-      revtickets-eureka:
-        condition: service_healthy
-    networks:
-      - revtickets-network
-
-  revtickets-movie:
-    image: shashank092/revtickets-movie:latest
-    container_name: revtickets-movie
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_movie_db
+      SPRING_APPLICATION_NAME: user-service
+      SPRING_CLOUD_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revtickets_user_db?useSSL=false&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: abc@123
-      SPRING_DATA_MONGODB_URI: mongodb://revtickets-mongodb:27017/revtickets_movie_db
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
-      CORS_ALLOWED_ORIGINS: "*"
+      SERVER_PORT: 8081
+    networks:
+      - revtickets-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  # Movie Service
+  movie-service:
+    build:
+      context: ./microservices/movie-service
+      dockerfile: Dockerfile
+    container_name: revtickets-movie-service
     ports:
       - "8082:8082"
-    depends_on:
-      revtickets-mysql:
-        condition: service_healthy
-      revtickets-mongodb:
-        condition: service_started
-      revtickets-eureka:
-        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: movie-service
+      SPRING_CLOUD_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_DATA_MONGODB_URI: mongodb://root:abc@123@mongodb:27017/revtickets_movie_db?authSource=admin
+      SERVER_PORT: 8082
     networks:
       - revtickets-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
 
-  revtickets-venue:
-    image: shashank092/revtickets-venue:latest
-    container_name: revtickets-venue
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_venue_db
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: abc@123
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
-      CORS_ALLOWED_ORIGINS: "*"
+  # Venue Service
+  venue-service:
+    build:
+      context: ./microservices/venue-service
+      dockerfile: Dockerfile
+    container_name: revtickets-venue-service
     ports:
       - "8083:8083"
-    depends_on:
-      revtickets-mysql:
-        condition: service_healthy
-      revtickets-eureka:
-        condition: service_healthy
-    networks:
-      - revtickets-network
-
-  revtickets-booking:
-    image: shashank092/revtickets-booking:latest
-    container_name: revtickets-booking
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_booking_db
+      SPRING_APPLICATION_NAME: venue-service
+      SPRING_CLOUD_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revtickets_venue_db?useSSL=false&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: abc@123
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
-      CORS_ALLOWED_ORIGINS: "*"
+      SERVER_PORT: 8083
+    networks:
+      - revtickets-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  # Booking Service
+  booking-service:
+    build:
+      context: ./microservices/booking-service
+      dockerfile: Dockerfile
+    container_name: revtickets-booking-service
     ports:
       - "8084:8084"
-    depends_on:
-      revtickets-mysql:
-        condition: service_healthy
-      revtickets-eureka:
-        condition: service_healthy
-    networks:
-      - revtickets-network
-
-  revtickets-payment:
-    image: shashank092/revtickets-payment:latest
-    container_name: revtickets-payment
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://revtickets-mysql:3306/revtickets_payment_db
+      SPRING_APPLICATION_NAME: booking-service
+      SPRING_CLOUD_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revtickets_booking_db?useSSL=false&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: abc@123
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://revtickets-eureka:8761/eureka
-      CORS_ALLOWED_ORIGINS: "*"
+      SERVER_PORT: 8084
+    networks:
+      - revtickets-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./microservices/payment-service
+      dockerfile: Dockerfile
+    container_name: revtickets-payment-service
     ports:
       - "8085:8085"
-    depends_on:
-      revtickets-mysql:
-        condition: service_healthy
-      revtickets-eureka:
-        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: payment-service
+      SPRING_CLOUD_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/revtickets_payment_db?useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: abc@123
+      SERVER_PORT: 8085
     networks:
       - revtickets-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
 
-  # Frontend
-  revtickets-frontend:
-    image: shashank092/revtickets-frontend:latest
+  # Frontend (Angular)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: revtickets-frontend
     ports:
-      - "3000:80"
-    depends_on:
-      - revtickets-gateway
-    networks:
-      - revtickets-network
-
-  # Database Initialization
-  revtickets-db-init:
-    image: mysql:8.0
-    container_name: revtickets-db-init
+      - "4200:80"
     environment:
-      MYSQL_ROOT_PASSWORD: abc@123
-    depends_on:
-      revtickets-mysql:
-        condition: service_healthy
+      - NGINX_HOST=frontend
+      - NGINX_PORT=80
     networks:
       - revtickets-network
-    command: >
-      bash -c "
-        mysql -h revtickets-mysql -u root -pabc@123 -e '
-        CREATE DATABASE IF NOT EXISTS revtickets_user_db;
-        CREATE DATABASE IF NOT EXISTS revtickets_movie_db;
-        CREATE DATABASE IF NOT EXISTS revtickets_venue_db;
-        CREATE DATABASE IF NOT EXISTS revtickets_booking_db;
-        CREATE DATABASE IF NOT EXISTS revtickets_payment_db;'
-      "
-    restart: "no"
+    depends_on:
+      - api-gateway
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+volumes:
+  mysql-data:
+  mongodb-data:
 
 networks:
   revtickets-network:
     driver: bridge
-
-volumes:
-  mysql_data:
-  mongodb_data:
